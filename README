@@ -1,0 +1,29 @@
+Lancet
+Dependency-based builds, Clojure Style, with optional Ant underneath
+Stuart Halloway
+(stu at thinkrelevance dot com)
+
+This is early days. To try it out:
+
+(1) Get the root directory of lancet on your CLASSPATH
+
+(2) Launch Clojure REPL from the examples directory
+
+(3) (load-file "build-clojure.clj")
+
+Targets are functions, so you can call them. They will run only once, however. 
+Targets track whether they have been run via a reference in their metadata.
+If you read build-clojure.clj and then read the REPL session below you will
+have an idea how it all fits together:
+
+user=> (load-file "build-clojure.clj")
+#=(var user/jar)
+user=> (jar)
+    [mkdir] Created dir: /Users/stuart/relevance/personal/tantalus/lancet/examples/classes
+    [javac] Compiling 1 source file to classes
+      [jar] Building jar: /Users/stuart/relevance/personal/tantalus/lancet/examples/clojure.jar
+true
+user=> (jar)
+true
+user=> (target-run? jar)
+true
