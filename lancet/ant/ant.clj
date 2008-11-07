@@ -43,34 +43,33 @@
     (throw-if (nil? obj) (str "No task named " name))
     (set-properties! obj props)
     obj))
-    
-(defmacro define-ant-task [task-name]
-  `(defn ~(symbol (eval task-name))
-     ([] (~(symbol (eval task-name)) {}))
-     ([props#]
-	(let [task# (instantiate-task ant-project ~task-name props#)]
-	  (.execute task#)))))
 
-(defmacro define-data-type [type-name]
-  `(defn ~(symbol (eval type-name))
-     ([] (~(symbol (eval type-name)) {}))
-     ([props#]
-	(instantiate-data-type ant-project ~type-name props#))))
+(defmacro define-ant-task [task-name]
+  `(defn ~task-name
+    ([] 
+       (~task-name {}))
+    ([props#]
+       (let [task# (instantiate-task ant-project ~(str task-name) props#)]
+	 (.execute task#)))))
+
+;; (defmacro define-data-type [type-name]
+;;   `(defn ~type-name
+;;      ([] (~type-name {}))
+;;      ([props#]
+;; 	(instantiate-data-type ant-project ~type-name props#))))
   
-; this would reflect across all task-defs, but it doesn't work. 
-; Don't know why yet
-;(doseq td (.getTaskDefinitions ant-project)
-;  (do
-;    (println (.getKey td)))
-;    (define-ant-task (.getKey td)))
+(doseq td (.getTaskDefinitions ant-project)
+ (do
+   (println (.getKey td))
+   (define-ant-task (.getKey td))))
 
 ; TODO: replace with reflective approach (above)
-(define-ant-task "echo")
-(define-ant-task "tstamp")
-(define-ant-task "mkdir")
-(define-ant-task "javac")
-(define-ant-task "delete")
-(define-ant-task "jar")
+;; (define-ant-task echo)
+;; (define-ant-task tstamp)
+;; (define-ant-task mkdir)
+;; (define-ant-task javac)
+;; (define-ant-task delete)
+;; (define-ant-task jar)
 
-(define-data-type "fileset")
+;; (define-data-type fileset)
 
