@@ -26,6 +26,13 @@
 (defmethod lancet/coerce [org.apache.tools.ant.types.Path String] [_ str] 
   (org.apache.tools.ant.types.Path. ant-project str))
 
+(defn instantiate-data-type [project name props]
+  (let [obj (.createDataType project name)]
+    (throw-if (nil? obj) (str "No task named " name))
+    (set-properties! obj props)
+    obj))
+
+
 ;; commented out target stuff becomes necessary if some tasks depend on a (dummy?) target
 (defn instantiate-task [project name props]
   (let [task (.createTask project name)]
@@ -38,19 +45,21 @@
     ; (.addTask target task)
     task))
 
-(defn instantiate-data-type [project name props]
-  (let [obj (.createDataType project name)]
-    (throw-if (nil? obj) (str "No task named " name))
-    (set-properties! obj props)
-    obj))
-
-(defmacro define-ant-task [task-name]
-  `(defn ~task-name
+(defn create-ant-task [task-name]
+  (fn f
     ([] 
-       (~task-name {}))
-    ([props#]
-       (let [task# (instantiate-task ant-project ~(str task-name) props#)]
-	 (.execute task#)))))
+       (f {}))
+    ([props]
+       (let [task (instantiate-task ant-project task-name props)]
+	 (.execute task)))))
+  
+(defmacro define-ant-task [task-name]
+  `(def ~(symbol task-name) (create-ant-task ~task-name)))
+
+;; (doseq td (.getTaskDefinitions ant-project)
+;;  (do
+;;    (println (.getKey td))
+;;    (define-ant-task (.getKey td))))
 
 ;; (defmacro define-data-type [type-name]
 ;;   `(defn ~type-name
@@ -58,10 +67,6 @@
 ;;      ([props#]
 ;; 	(instantiate-data-type ant-project ~type-name props#))))
   
-(doseq td (.getTaskDefinitions ant-project)
- (do
-   (println (.getKey td))
-   (define-ant-task (.getKey td))))
 
 ; TODO: replace with reflective approach (above)
 ;; (define-ant-task echo)
