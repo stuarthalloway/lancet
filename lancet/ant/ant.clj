@@ -52,29 +52,22 @@
     ([props]
        (let [task (instantiate-task ant-project task-name props)]
 	 (.execute task)))))
-  
-(defmacro define-ant-task [task-name]
-  `(def ~(symbol task-name) (create-ant-task ~task-name)))
 
-;; (doseq td (.getTaskDefinitions ant-project)
-;;  (do
-;;    (println (.getKey td))
-;;    (define-ant-task (.getKey td))))
+(def task-names 
+     (disj (set (map #(symbol (.getKey %)) (.getTaskDefinitions ant-project)))
+	   'import 'touch 'sync 'concat 'filter 'replace 'get 'apply))
 
-;; (defmacro define-data-type [type-name]
-;;   `(defn ~type-name
-;;      ([] (~type-name {}))
-;;      ([props#]
-;; 	(instantiate-data-type ant-project ~type-name props#))))
-  
+(defmacro define-ant-task [t]
+  `(def ~t (create-ant-task ~(name t))))
 
-; TODO: replace with reflective approach (above)
-;; (define-ant-task echo)
-;; (define-ant-task tstamp)
-;; (define-ant-task mkdir)
-;; (define-ant-task javac)
-;; (define-ant-task delete)
-;; (define-ant-task jar)
+(defmacro define-ant-tasks []
+  `(do
+     ~@(map 
+	(fn [nm]
+	  `(define-ant-task ~nm))
+	task-names)))
 
-;; (define-data-type fileset)
+(define-ant-tasks)
+
+; (define-data-type fileset)
 
