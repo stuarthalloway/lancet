@@ -9,7 +9,6 @@
 (ns lancet
     (use clojure.contrib.except))
 
-(def *project*)
 (def *target*) 
 (def *task*)
 
@@ -75,10 +74,11 @@
      has-run]))
 
 (defmacro defrunonce [sym doc & forms]
-  "Defines a function with runonce semantics. Curren run status
-  is kept in a reference under the :has-run metadata key."
-  (let [[function has-run] (runonce (eval (concat (list 'fn []) forms)))]
-    `(def ~(with-meta sym {:has-run has-run}) ~function)))
+ "Defines a function with runonce semantics. Curren run status
+ is kept in a reference under the :has-run metadata key."
+ (let [has-run (gensym)]
+   `(let [[function# ~has-run] (runonce (fn [] ~@forms))]
+      (def ~(with-meta sym {:has-run has-run}) function#))))
 
 (defmacro deftarget 
   "create a lancet target. Targets are runonce, and get a default docstring

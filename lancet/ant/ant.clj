@@ -45,20 +45,18 @@
     ; (.addTask target task)
     task))
 
-(defn create-ant-task [task-name]
-  (fn f
-    ([] 
-       (f {}))
-    ([props]
-       (let [task (instantiate-task ant-project task-name props)]
-	 (.execute task)))))
+(defn execute-ant-task [task-name]
+  (fn f [& args]
+    (let [props (if (map? (first args)) (first args) {})
+          task (instantiate-task ant-project task-name props)]
+      (.execute task))))
 
 (def task-names 
      (disj (set (map #(symbol (.getKey %)) (.getTaskDefinitions ant-project)))
 	   'import 'touch 'sync 'concat 'filter 'replace 'get 'apply))
 
 (defmacro define-ant-task [t]
-  `(def ~t (create-ant-task ~(name t))))
+  `(def ~t (execute-ant-task ~(name t))))
 
 (defmacro define-ant-tasks []
   `(do
