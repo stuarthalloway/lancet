@@ -45,18 +45,22 @@
     ; (.addTask target task)
     task))
 
-(defn execute-ant-task [task-name]
-  (fn f [& args]
-    (let [props (if (map? (first args)) (first args) {})
-          task (instantiate-task ant-project task-name props)]
-      (.execute task))))
-
+;; temporarily removing tasks that collide with Clojure
 (def task-names 
      (disj (set (map #(symbol (.getKey %)) (.getTaskDefinitions ant-project)))
 	   'import 'touch 'sync 'concat 'filter 'replace 'get 'apply))
 
-(defmacro define-ant-task [t]
-  `(def ~t (execute-ant-task ~(name t))))
+(defmacro ant-task [task-name & args]
+  (let [has-props? (map? (first args))
+	forms (if has-props? (rest args) args)
+	props (if has-props? (first args) {})]
+    `(let [task# (instantiate-task ant-project ~(name task-name) ~props)]
+       (doto task# ~@forms)
+       (~'.execute task#))))
+
+(defmacro define-ant-task [task-name]
+  `(defmacro ~task-name [& args#]
+     (concat (list 'ant-task '~task-name) args#)))
 
 (defmacro define-ant-tasks []
   `(do
