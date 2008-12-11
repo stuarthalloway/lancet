@@ -1,7 +1,7 @@
 (ns lancet.test
   (:use clojure.contrib.test-is))
 
-(def tests [:lancet :runonce :ant])
+(def tests [:lancet :runonce :ant :coerce])
 
 (defn test-name
   [test]

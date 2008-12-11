@@ -2,6 +2,14 @@
   (:use [clojure.contrib.except :only (throw-if)])
   (:import (java.beans Introspector)))
 
+(defmulti coerce (fn [dest-class src-inst] [dest-class (class src-inst)]))
+
+(defmethod coerce [java.io.File String] [_ str] 
+  (java.io.File. str))
+(defmethod coerce [Boolean/TYPE String] [_ str]
+  (contains? #{"on" "yes" "true"} (.toLowerCase str)))
+(defmethod coerce :default [dest-cls obj] (cast dest-cls obj))
+
 (def
  #^{:doc "Dummy ant project to keep Ant tasks happy"} 	
  ant-project                                            
