@@ -3,7 +3,7 @@
   (:use lancet))
 
 (deftest boolean-coerce
-  (are =
+  (are (= _1 _2)
     (coerce Boolean/TYPE "yes") true
     (coerce Boolean/TYPE "YES") true
     (coerce Boolean/TYPE "on") true
@@ -14,9 +14,9 @@
     (coerce Boolean/TYPE "foo") false))
 
 (deftest file-coerce
-  (are =
+  (are (= _1 _2)
     (coerce java.io.File "foo") (java.io.File. "foo")))
 
 (deftest default-coerce
-  (are =
+  (are (= _1 _2)
     (coerce Comparable 10) 10))

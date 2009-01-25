@@ -13,30 +13,30 @@
 
     ; TODO: add nested contexts to test-is, a la PCL
     ; initial state
-    (are = 
+    (are (= _1 _2)
      (has-run?) false
      @counter 0)
     
     ; run the fn
     (f)
-    (are =
+    (are (= _1 _2)
      (has-run?) true
      @counter 1)
 
     ; run the fn again (no change)
     (f)
-    (are =
+    (are (= _1 _2)
      (has-run?) true
      @counter 1)
 
     ; reset the fn
     (reset)
-    (are = 
+    (are (= _1 _2) 
      (has-run?) false)
 
     ; run the fn again
     (f)
-    (are =
+    (are (= _1 _2)
      (has-run?) true
      @counter 2)
 ))
