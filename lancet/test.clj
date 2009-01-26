@@ -10,8 +10,6 @@
 (doseq [test tests]
   (require (test-name test)))
 
-(doseq [test tests]
-  (println "\n\n=====>" test)
-  (run-tests (test-name test)))
+(apply run-tests (map test-name tests))
 
 (shutdown-agents)

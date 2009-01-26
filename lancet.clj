@@ -1,5 +1,7 @@
 (ns lancet
-  (:use [clojure.contrib.except :only (throw-if)])
+  (:use [clojure.contrib.except :only (throw-if)] 
+        clojure.contrib.shell-out
+	[clojure.contrib.str-utils :only (re-split)])
   (:import (java.beans Introspector)))
 
 (defmulti coerce (fn [dest-class src-inst] [dest-class (class src-inst)]))
@@ -9,6 +11,15 @@
 (defmethod coerce [Boolean/TYPE String] [_ str]
   (contains? #{"on" "yes" "true"} (.toLowerCase str)))
 (defmethod coerce :default [dest-cls obj] (cast dest-cls obj))
+
+(defn env [val]
+  (System/getenv (name val)))
+
+(defn- build-sh-args [args]
+  (concat (re-split #"\s+" (first args)) (rest args)))
+
+(defn system [& args]
+  (println (apply sh (build-sh-args args))))
 
 (def
  #^{:doc "Dummy ant project to keep Ant tasks happy"} 	
@@ -50,6 +61,11 @@
       (.setProject project)
       (set-properties! props))))
 
+(defn- runonce-result [agt]
+  (if-let [errs (agent-errors agt)]
+    (throw (first errs))
+    @agt))
+    
 (defn runonce
  "Create a function that will only run once. All other invocations
  return the first calculated value. The function can have side effects.
@@ -68,7 +84,7 @@
 		     (apply function args)
 		     %))
 	(await agt))
-      @agt)]))
+      (runonce-result agt))]))
 
 (defmacro has-run? [f]
   `((:has-run (meta (var ~f)))))
