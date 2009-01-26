@@ -2,7 +2,7 @@
   (:use [clojure.contrib.except :only (throw-if)] 
         clojure.contrib.shell-out
 	[clojure.contrib.str-utils :only (re-split)])
-  (:import (java.beans Introspector)))
+  (:import (java.beans Introspector) (java.util.concurrent CountDownLatch)))
 
 (defmulti coerce (fn [dest-class src-inst] [dest-class (class src-inst)]))
 
@@ -61,31 +61,24 @@
       (.setProject project)
       (set-properties! props))))
 
-(defn- runonce-result [agt]
-  (if-let [errs (agent-errors agt)]
-    (throw (first errs))
-    @agt))
-    
 (defn runonce
  "Create a function that will only run once. All other invocations
- return the first calculated value. The function can have side effects.
- Returns a [has-run-predicate, reset-fn, once-fn]"
- [function]
- (let [sentinel (Object.) 
-       agt (agent sentinel)
-       reset-fn (fn [] (send agt (fn [_] sentinel)) (await agt))
-       has-run? #(not= @agt sentinel)]
-   [has-run?
-    reset-fn
-    (fn [& args] 
-      (when (= @agt sentinel)
-	(send-off agt
-		  #(if (= % sentinel)
-		     (apply function args)
-		     %))
-	(await agt))
-      (runonce-result agt))]))
-
+  return the first calculated value. The function *can* have side effects,
+  and calls to runonce *can* be composed.
+  Returns a [has-run-predicate, reset-fn, once-fn]"
+  [function] 
+  (let [sentinel (Object.)
+	result (atom sentinel)
+	reset-fn (fn [] (reset! result sentinel))
+	has-run-fn (fn [] (not= @result sentinel))]
+    [has-run-fn
+     reset-fn
+     (fn [& args]
+       (if (= @result sentinel)
+	 (locking sentinel
+	   (if (= @result sentinel)
+	     (reset! result (function))))))]))
+	    
 (defmacro has-run? [f]
   `((:has-run (meta (var ~f)))))
 
