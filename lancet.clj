@@ -1,4 +1,5 @@
 (ns lancet
+  (:gen-class)
   (:use [clojure.contrib.except :only (throw-if)] 
         clojure.contrib.shell-out
 	[clojure.contrib.str-utils :only (re-split)])
@@ -85,7 +86,10 @@
 (defmacro reset [f]
   `((:reset-fn (meta (var ~f)))))
 
+(def targets (atom #{}))
+
 (defmacro deftarget [sym doc & forms]
+  (swap! targets #(conj % sym)) 
   (let [has-run (gensym "hr-") reset-fn (gensym "rf-")]
     `(let [[~has-run ~reset-fn once-fn#] (runonce (fn [] ~@forms))]
        (def ~(with-meta sym {:doc doc :has-run has-run :reset-fn reset-fn}) 
@@ -122,6 +126,12 @@
 ; this would have to be wired to an Ant project
 ; (define-bean-constructor fileset org.apache.tools.ant.types.FileSet)
 	   
-
+(defn -main [& targs]
+  (load-file "build.clj")
+  (if targs
+    (doseq [targ (map symbol targs)]
+	(eval (list targ)))
+    (println "Available targets: " @targets))
+  (System/exit 0))
 
 
