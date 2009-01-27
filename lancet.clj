@@ -54,18 +54,22 @@
 (defn set-properties! [inst prop-map]
   (doseq [[k v] prop-map] (set-property! inst (name k) v))) 
 
-(defn instantiate-task [project name props]
+(defn instantiate-task [project name props & filesets]
   (let [task (.createTask project name)]
     (throw-if (nil? task) (str "No task named " name))
     (doto task
       (.init)
       (.setProject project)
-      (set-properties! props))))
+      (set-properties! props))
+    (doseq [fs filesets]
+      (.add task fs))	
+    task))
 
 (defn runonce
  "Create a function that will only run once. All other invocations
   return the first calculated value. The function *can* have side effects,
-  and calls to runonce *can* be composed.
+  and calls to runonce *can* be composed. Deadlock is possible
+  if you have circular dependencies.
   Returns a [has-run-predicate, reset-fn, once-fn]"
   [function] 
   (let [sentinel (Object.)
@@ -75,10 +79,10 @@
     [has-run-fn
      reset-fn
      (fn [& args]
-       (if (= @result sentinel)
-	 (locking sentinel
-	   (if (= @result sentinel)
-	     (reset! result (function))))))]))
+       (locking sentinel
+	 (if (= @result sentinel)
+	   (reset! result (function))
+	   @result)))]))
 	    
 (defmacro has-run? [f]
   `((:has-run (meta (var ~f)))))
@@ -101,10 +105,12 @@
        (.execute task#)
        task#)))
 
-(defmacro define-bean-constructor [clj-name ant-name]
+(defmacro define-ant-type [clj-name ant-name]
   `(defn ~clj-name [props#]
      (let [bean# (new ~ant-name)]
        (set-properties! bean# props#)
+       (when (property-descriptor bean# "project")
+	 (set-property! bean# "project" ant-project))
        bean#)))
 
 (defn task-names [] (map symbol (seq (.. ant-project getTaskDefinitions keySet))))
@@ -120,18 +126,14 @@
 
 (define-all-ant-tasks)
 
-; one possible way to create non-task Ant stuff
-(define-bean-constructor files org.apache.tools.ant.types.resources.Files)
-
-; this would have to be wired to an Ant project
-; (define-bean-constructor fileset org.apache.tools.ant.types.FileSet)
+(define-ant-type files org.apache.tools.ant.types.resources.Files)
+(define-ant-type fileset org.apache.tools.ant.types.FileSet)
 	   
 (defn -main [& targs]
   (load-file "build.clj")
   (if targs
     (doseq [targ (map symbol targs)]
-	(eval (list targ)))
-    (println "Available targets: " @targets))
-  (System/exit 0))
+      (eval (list targ)))
+    (println "Available targets: " @targets)))
 
 

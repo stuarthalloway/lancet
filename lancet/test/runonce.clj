@@ -18,14 +18,14 @@
      @counter 0)
     
     ; run the fn
-    (f)
     (are (= _1 _2)
+     (f) 1
      (has-run?) true
      @counter 1)
 
     ; run the fn again (no change)
-    (f)
     (are (= _1 _2)
+     (f) 1
      (has-run?) true
      @counter 1)
 
@@ -35,8 +35,8 @@
      (has-run?) false)
 
     ; run the fn again
-    (f)
     (are (= _1 _2)
+     (f) 2
      (has-run?) true
      @counter 2)
 ))

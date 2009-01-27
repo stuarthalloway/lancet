@@ -1,10 +1,20 @@
-(use 'clojure.contrib.shell-out 'lancet)
+(use 'clojure.contrib.shell-out 
+     'lancet
+     'clojure.contrib.str-utils)
 
 (def clojure-home (or (env :CLOJURE_HOME) "/Users/stuart/repos/clojure"))
 (def contrib-home (or (env :CLOJURE_CONTRIB_HOME) "/Users/stuart/repos/clojure-contrib"))
 
 (def lib-dir "lib")
 (def build-dir "build")
+
+(def classpath (str-join (java.io.File/pathSeparatorChar)
+			 ["lib/ant.jar" 
+			  "lib/ant-launcher.jar"
+			  "lib/clojure.jar"
+			  "lib/clojure-contrib.jar"
+			  "."
+			  "build"]))
 
 (deftarget build-clojure "Build Clojure from source"
   (with-sh-dir clojure-home
@@ -20,6 +30,12 @@
   (mkdir {:dir lib-dir})
   (mkdir {:dir build-dir}))
 
+(deftarget licenses "Copy license info for embedded libs"
+  (let [dest-dir (str build-dir "/licenses")]
+    (mkdir {:dir dest-dir})
+    (copy {:todir dest-dir}
+      (fileset {:dir "licenses"}))))
+    
 (deftarget build-dependencies "Build dependent libraries"
   (init)
   (build-clojure) 
@@ -33,10 +49,16 @@
   (init)
   (system (str "java -Dclojure.compile.path="
 	       build-dir
-	       " -cp lib/ant.jar:lib/ant-launcher.jar:lib/clojure.jar:lib/clojure-contrib.jar:build:. clojure.lang.Compile lancet")))
+	       " -cp " classpath
+               " clojure.lang.Compile lancet")))
+
+(deftarget test-lancet "test lancet"
+  (compile-lancet)
+  (system (str "java -cp " classpath " clojure.lang.Script lancet/test.clj")))
 
 (deftarget create-jar "jar up lancet"
   (init)
+  (licenses)
   (unjar {:src (str lib-dir "/clojure.jar")
 	  :dest build-dir})
   (unjar {:src (str lib-dir "/clojure-contrib.jar")

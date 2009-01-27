@@ -36,6 +36,23 @@
     (is (nil? (property-descriptor bean "foobar")))
     (is (not (nil? (property-descriptor bean "level")))))) 
 
+(defn fileset-names [fs]
+  (map #(.getName %) (iterator-seq (.iterator fs))))
+
+(deftest test-fileset
+  (let [fs (fileset {:dir "lancet/test/data"})]
+    (is (= ["file-1" "file-2"] (fileset-names fs)))))
+
+(deftest test-adding-fileset-to-task
+  ; absence of an exception demonstrates add(...) call did not blow up
+  (let [task (instantiate-task ant-project 
+			       "copy" 
+			       {} 
+			       (fileset {:dir "lancet/test/data"}))]))
+   
+    
+       
+    
 
 
 
