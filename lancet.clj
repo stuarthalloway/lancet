@@ -11,7 +11,8 @@
   (java.io.File. str))
 (defmethod coerce [Boolean/TYPE String] [_ str]
   (contains? #{"on" "yes" "true"} (.toLowerCase str)))
-(defmethod coerce :default [dest-cls obj] (cast dest-cls obj))
+(defmethod coerce :default [dest-cls obj]
+	   (if (.isPrimitive dest-cls) obj (cast dest-cls obj)))
 
 (defn env [val]
   (System/getenv (name val)))

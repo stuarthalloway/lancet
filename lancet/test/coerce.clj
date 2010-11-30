@@ -19,4 +19,5 @@
 
 (deftest default-coerce
   (are (= _1 _2)
-    (coerce Comparable 10) 10))
+    (coerce Comparable 10) 10
+    (coerce Integer/TYPE 10) 10))
