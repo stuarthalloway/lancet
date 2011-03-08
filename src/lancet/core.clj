@@ -25,7 +25,7 @@
   (contains? #{"on" "yes" "true"} (.toLowerCase str)))
 (defmethod coerce :default [dest-cls obj] (cast dest-cls obj))
 (defmethod coerce [Path String] [_ str]
-  (Path. lancet/ant-project str))
+  (Path. ant-project str))
 
 (defn env [val]
   (System/getenv (name val)))
