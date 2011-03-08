@@ -1,9 +1,21 @@
 (ns lancet.core
   (:gen-class)
-  (:use [clojure.contrib.except :only (throw-if)]
-        clojure.contrib.shell-out
-        [clojure.contrib.str-utils :only (re-split)])
-  (:import (java.beans Introspector) (java.util.concurrent CountDownLatch)))
+  (:import (java.beans Introspector)
+           (java.util.concurrent CountDownLatch)
+           (org.apache.tools.ant.types Path)))
+
+(def #^{:doc "Dummy ant project to keep Ant tasks happy"}
+  ant-project
+  (let [proj (org.apache.tools.ant.Project.)
+        logger (org.apache.tools.ant.NoBannerLogger.)]
+    (doto logger
+      (.setMessageOutputLevel org.apache.tools.ant.Project/MSG_INFO)
+      (.setEmacsMode true)
+      (.setOutputPrintStream System/out)
+      (.setErrorPrintStream System/err))
+    (doto proj
+      (.init)
+      (.addBuildListener logger))))
 
 (defmulti coerce (fn [dest-class src-inst] [dest-class (class src-inst)]))
 
@@ -12,28 +24,14 @@
 (defmethod coerce [Boolean/TYPE String] [_ str]
   (contains? #{"on" "yes" "true"} (.toLowerCase str)))
 (defmethod coerce :default [dest-cls obj] (cast dest-cls obj))
+(defmethod coerce [Path String] [_ str]
+  (Path. lancet/ant-project str))
 
 (defn env [val]
   (System/getenv (name val)))
 
 (defn- build-sh-args [args]
-  (concat (re-split #"\s+" (first args)) (rest args)))
-
-(defn system [& args]
-  (println (apply sh (build-sh-args args))))
-
-(def
- #^{:doc "Dummy ant project to keep Ant tasks happy"}
- ant-project
- (let [proj (org.apache.tools.ant.Project.)
-       logger (org.apache.tools.ant.NoBannerLogger.)]
-   (doto logger
-     (.setMessageOutputLevel org.apache.tools.ant.Project/MSG_INFO)
-     (.setOutputPrintStream System/out)
-     (.setErrorPrintStream System/err))
-   (doto proj
-     (.init)
-     (.addBuildListener logger))))
+  (concat (.split (first args) " +") (rest args)))
 
 (defn property-descriptor [inst prop-name]
   (first
@@ -46,7 +44,8 @@
 
 (defn set-property! [inst prop value]
   (let [pd (property-descriptor inst prop)]
-    (throw-if (nil? pd) (str "No such property " prop))
+    (when-not pd
+      (throw (Exception. (format "No such property %s." prop))))
     (let [write-method (.getWriteMethod pd)
           dest-class (get-property-class write-method)]
       (.invoke write-method inst (into-array [(coerce dest-class value)])))))
@@ -56,13 +55,14 @@
 
 (defn instantiate-task [project name props & filesets]
   (let [task (.createTask project name)]
-    (throw-if (nil? task) (str "No task named " name))
+    (when-not task
+      (throw (Exception. (format "No task named %s." name))))
     (doto task
       (.init)
       (.setProject project)
       (set-properties! props))
     (doseq [fs filesets]
-      (.add task fs))
+      (.addFileset task fs))
     task))
 
 (defn runonce
@@ -126,7 +126,8 @@
 
 (define-all-ant-tasks)
 
-(define-ant-type files org.apache.tools.ant.types.resources.Files)
+;; Newer versions of ant don't have this class:
+;; (define-ant-type files org.apache.tools.ant.types.resources.Files)
 (define-ant-type fileset org.apache.tools.ant.types.FileSet)
 
 (defn -main [& targs]
