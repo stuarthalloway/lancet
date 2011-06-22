@@ -2,7 +2,9 @@
   (:gen-class)
   (:import (java.beans Introspector)
            (java.util.concurrent CountDownLatch)
-           (org.apache.tools.ant.types Path)))
+           (org.apache.tools.ant.types Path)
+           (org.apache.tools.ant.taskdefs Manifest$Attribute)
+           (java.util Map)))
 
 (def #^{:doc "Dummy ant project to keep Ant tasks happy"}
   ant-project
@@ -53,7 +55,30 @@
 (defn set-properties! [inst prop-map]
   (doseq [[k v] prop-map] (set-property! inst (name k) v)))
 
-(defn instantiate-task [project name props & filesets]
+(def ant-task-hierarchy
+  (atom (-> (make-hierarchy)
+            (derive ::exec ::has-args))))
+
+(defmulti add-nested
+  "Adds a nested element to ant task.
+Elements are added in a different way for each type.
+Task name keywords are connected into a hierarchy which can
+be used to extensively add other types to this method.
+The default behaviour is to add an element as a fileset."
+  (fn [name task nested] [(keyword "lancet.core" name) (class nested)])
+  :hierarchy ant-task-hierarchy)
+
+(defmethod add-nested [::manifest Map]
+  [_ task props]
+  (doseq [[n v] props] (.addConfiguredAttribute task
+                                                (Manifest$Attribute. n v))))
+(defmethod add-nested [::has-args String]
+  [_ task arg]
+  (doto  (.createArg task) (.setValue arg)))
+
+(defmethod add-nested :default [_ task nested] (.addFileset task nested))
+
+(defn instantiate-task [project name props & nested]
   (let [task (.createTask project name)]
     (when-not task
       (throw (Exception. (format "No task named %s." name))))
@@ -61,8 +86,9 @@
       (.init)
       (.setProject project)
       (set-properties! props))
-    (doseq [fs filesets]
-      (.addFileset task fs))
+    (doseq [n nested]
+      (add-nested name task n)
+      )
     task))
 
 (defn runonce
