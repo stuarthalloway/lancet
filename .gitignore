@@ -1,1 +1,4 @@
-/build
+lib/
+classes/
+pom.xml
+*jar
