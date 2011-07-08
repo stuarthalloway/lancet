@@ -1,6 +1,7 @@
 (ns lancet.test.lancet
-  (:use clojure.contrib.test-is [clojure.set :only (intersection)])
-  (:use lancet))
+  (:use [clojure.test]
+        [clojure.set :only (intersection)])
+  (:use [lancet.core]))
 
 ;; Predicates
 
@@ -14,17 +15,15 @@
 
 (deftest test-task-names
   (let [some-names #{'echo 'mkdir}]
-    (are (= _1 _2)
-	 (intersection (into #{} (task-names)) some-names) some-names)))
+    (is (= (intersection (into #{} (task-names)) some-names) some-names))))
 
 (deftest test-safe-ant-name
-  (are (= _1 _2)
+  (are [_1 _2] (= _1 _2)
        (safe-ant-name 'echo) 'echo
        (safe-ant-name 'import) 'ant-import))
 
 (deftest test-define-all-ant-tasks-defines-echo
   (let [echo-task (echo {:description "foo"})]
-    (are (= _1 _2)
-	 (.getDescription echo-task) "foo"
-	 (class echo-task) org.apache.tools.ant.taskdefs.Echo)))
-  
+    (are [_1 _2] (= _1 _2)
+         (.getDescription echo-task) "foo"
+         (class echo-task) org.apache.tools.ant.taskdefs.Echo)))
